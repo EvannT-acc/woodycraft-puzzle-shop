@@ -1,0 +1,26 @@
+version: '3.8'  # Version de Docker Compose utilisée
+
+services:
+  app:  # Définition du service pour l'application Laravel
+    build: .  # Construit l'image à partir du Dockerfile situé dans le répertoire courant
+    container_name: laravel_app  # Nom du conteneur pour l'application Laravel
+    ports:
+      - "8081:8000"  # Redirige le port 8000 du conteneur vers le port 8081 de l'hôte
+    volumes:
+      - .:/var/www/html  # Monte le répertoire courant sur /var/www/html dans le conteneur
+    depends_on:
+      - db  # Assure que le service "db" démarre avant "app"
+
+  db:  # Définition du service pour la base de données MySQL
+    image: mysql:8  # Utilise l'image officielle MySQL version 8
+    container_name: mysql_db  # Nom du conteneur pour MySQL
+    environment:  # Variables d'environnement pour configurer MySQL
+      MYSQL_ROOT_PASSWORD: linux  # Mot de passe de l'utilisateur root
+      MYSQL_DATABASE: linux  # Nom de la base de données créée au démarrage
+      MYSQL_USER: evann  # Nom d'utilisateur MySQL
+      MYSQL_PASSWORD: linux  # Mot de passe pour l'utilisateur MySQL
+    ports:
+      - "3306:3306"  # Expose le port MySQL 3306 pour les connexions externes
+    volumes:
+      - ./db-data:/var/lib/mysql  # Monte un volume local pour persister les données de la base
+      - ./db-init:/docker-entrypoint-initdb.d  # Exécute les scripts SQL de db-init au premier démarrage

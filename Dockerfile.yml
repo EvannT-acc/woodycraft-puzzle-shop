@@ -1,0 +1,20 @@
+# Utilisation de l'image officielle PHP en version 8.1 CLI comme base
+FROM php:8.1-cli
+
+# Définition du répertoire de travail à l'intérieur du conteneur
+WORKDIR /var/www/html
+
+# Mise à jour des paquets et installation de 'unzip' (nécessaire pour Composer)
+RUN apt-get update && apt-get install -y unzip
+
+# Téléchargement et installation de Composer (outil de gestion des dépendances PHP)
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Copie des fichiers du projet dans le conteneur
+COPY . .
+
+# Installation des dépendances PHP définies dans composer.json
+RUN composer install
+
+# Commande de démarrage du conteneur : lancement du serveur Laravel sur le port 8000
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
