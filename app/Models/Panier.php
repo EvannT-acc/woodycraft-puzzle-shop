@@ -11,18 +11,20 @@ class Panier extends Model
 
     protected $fillable = [
         'user_id',
-        'status',
+        'status',       // 0 = en cours, 1 = paye
         'total',
-        'mode_paiement',
+        'mode_paiement', // cheque, paypal ou carte
     ];
 
-    public function lignes()
-    {
-        return $this->hasMany(LignePanier::class);
-    }
-
+    // Un panier appartient a un utilisateur
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    // Un panier contient plusieurs lignes (un produit par ligne)
+    public function lignes()
+    {
+        return $this->hasMany(LignePanier::class);
     }
 }

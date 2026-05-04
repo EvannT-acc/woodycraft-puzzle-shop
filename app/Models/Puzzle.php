@@ -2,34 +2,31 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Puzzle extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'title',
+        'nom',
         'description',
-        'difficulty',
-        'price',
+        'image',
+        'prix',
+        'stock',
         'categorie_id',
-        'image_path',
     ];
 
+    // Un puzzle appartient a une categorie
     public function categorie()
     {
-        return $this->belongsTo(Categorie::class, 'categorie_id');
+        return $this->belongsTo(Categorie::class);
     }
 
-    public function imageUrl(): string
-    {
-        return asset('storage/' . ($this->image_path ?: 'placeholders/puzzle.png'));
-    }
-
+    // Un puzzle peut avoir plusieurs avis
     public function avis()
     {
-       return $this->hasMany(Avis::class);
+        return $this->hasMany(Avis::class);
     }
 }

@@ -2,144 +2,104 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Panier;
 use App\Models\LignePanier;
 use App\Models\Puzzle;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PanierController extends Controller
 {
-    /**
-     * Afficher le panier (session ou utilisateur)
-     */
+    // Affiche le panier en cours de l'utilisateur connecte
     public function index()
     {
-        if (Auth::check()) {
-            // 🔒 Utilisateur connecté : panier en BDD
-            $panier = Panier::firstOrCreate(
-                ['user_id' => Auth::id(), 'status' => 0],
-                ['total' => 0]
-            );
-            $lignes = $panier->lignes()->with('puzzle')->get();
-        } else {
-            // 🌐 Invité : panier "lecture seule"
-            $panier = (object)[
-                'id' => null,
-                'total' => 0,
-            ];
+        // firstOrCreate : recupere le panier en cours, ou en cree un s'il n'existe pas
+        $panier = Panier::firstOrCreate(
+            ['user_id' => Auth::id(), 'status' => 0],
+            ['total'   => 0]
+        );
 
-            $sessionPanier = session('panier', []);
-            $lignes = collect($sessionPanier)->map(function ($item) {
-                $puzzle = Puzzle::find($item['puzzle_id']);
-                return (object)[
-                    'id' => null, // pas d’ID car pas en base
-                    'puzzle' => $puzzle,
-                    'quantite' => $item['quantite'],
-                ];
-            });
-
-            $panier->total = $lignes->sum(fn($l) => $l->puzzle->prix * $l->quantite);
-        }
+        $lignes = $panier->lignes()->with('puzzle')->get();
 
         return view('paniers.index', compact('panier', 'lignes'));
     }
 
-    /**
-     * Ajouter un puzzle au panier (connecté uniquement)
-     */
-    public function add(Request $request, $puzzle_id)
+    // Ajoute un puzzle au panier
+    public function add(Puzzle $puzzle)
     {
-        // 🚫 Si pas connecté, rediriger
-        if (!Auth::check()) {
-            return redirect()->route('login')->with('error', 'Veuillez vous connecter pour ajouter un produit au panier.');
-        }
-
-        $puzzle = Puzzle::findOrFail($puzzle_id);
-
         if ($puzzle->stock < 1) {
-            return back()->with('error', 'Ce produit est en rupture de stock.');
+            return back()->with('erreur', 'Ce puzzle est en rupture de stock.');
         }
 
-        // 🔒 Utilisateur connecté : panier BDD
         $panier = Panier::firstOrCreate(
             ['user_id' => Auth::id(), 'status' => 0],
-            ['total' => 0]
+            ['total'   => 0]
         );
 
+        // Si ce puzzle est deja dans le panier, on incremente la quantite
         $ligne = LignePanier::where('panier_id', $panier->id)
             ->where('puzzle_id', $puzzle->id)
             ->first();
 
         if ($ligne) {
             if ($ligne->quantite >= $puzzle->stock) {
-                return back()->with('error', 'Stock insuffisant pour ajouter plus de ce produit.');
+                return back()->with('erreur', 'Vous avez atteint le stock maximum disponible.');
             }
             $ligne->increment('quantite');
         } else {
             LignePanier::create([
                 'panier_id' => $panier->id,
                 'puzzle_id' => $puzzle->id,
-                'quantite' => 1,
+                'quantite'  => 1,
             ]);
         }
 
-        // 🔄 Mise à jour du total
-        $panier->total = $panier->lignes()->with('puzzle')->get()
-            ->sum(fn($l) => $l->puzzle->prix * $l->quantite);
-        $panier->save();
+        $this->recalculerTotal($panier);
 
-        return back()->with('success', 'Produit ajouté au panier !');
+        return back()->with('succes', 'Puzzle ajoute au panier.');
     }
 
-    /**
-     * Mettre à jour la quantité d’un produit du panier (connecté uniquement)
-     */
-    public function update(Request $request, $ligne_id)
+    // Met a jour la quantite d'une ligne du panier
+    public function update(Request $request, LignePanier $ligne)
     {
-        if (!Auth::check()) {
-            return redirect()->route('login')->with('error', 'Connectez-vous pour modifier votre panier.');
+        // Securite : la ligne doit appartenir au panier de l'utilisateur connecte
+        if ($ligne->panier->user_id !== Auth::id()) {
+            abort(403);
         }
 
-        $request->validate([
-            'quantite' => 'required|integer|min:1'
-        ]);
-
-        $ligne = LignePanier::findOrFail($ligne_id);
-        $panier = $ligne->panier;
+        $request->validate(['quantite' => 'required|integer|min:1']);
 
         if ($request->quantite > $ligne->puzzle->stock) {
-            return back()->with('error', 'Stock insuffisant.');
+            return back()->with('erreur', 'Stock insuffisant.');
         }
 
         $ligne->update(['quantite' => $request->quantite]);
-        $panier->update([
-            'total' => $panier->lignes()->with('puzzle')->get()
-                ->sum(fn($l) => $l->puzzle->prix * $l->quantite),
-        ]);
+        $this->recalculerTotal($ligne->panier);
 
-        return back()->with('success', 'Quantité mise à jour.');
+        return back()->with('succes', 'Quantite mise a jour.');
     }
 
-    /**
-     * Supprimer un produit du panier (connecté uniquement)
-     */
-    public function remove($ligne_id)
+    // Supprime une ligne du panier
+    public function remove(LignePanier $ligne)
     {
-        if (!Auth::check()) {
-            return redirect()->route('login')->with('error', 'Connectez-vous pour modifier votre panier.');
+        // Securite : la ligne doit appartenir au panier de l'utilisateur connecte
+        if ($ligne->panier->user_id !== Auth::id()) {
+            abort(403);
         }
 
-        $ligne = LignePanier::findOrFail($ligne_id);
         $panier = $ligne->panier;
-
         $ligne->delete();
+        $this->recalculerTotal($panier);
 
-        $panier->update([
-            'total' => $panier->lignes()->with('puzzle')->get()
-                ->sum(fn($l) => $l->puzzle->prix * $l->quantite),
-        ]);
+        return back()->with('succes', 'Puzzle retire du panier.');
+    }
 
-        return back()->with('success', 'Produit retiré du panier.');
+    // Methode privee : recalcule et sauvegarde le total du panier
+    private function recalculerTotal(Panier $panier): void
+    {
+        $total = $panier->lignes()->with('puzzle')->get()
+            ->sum(fn($l) => $l->puzzle->prix * $l->quantite);
+
+        $panier->update(['total' => $total]);
     }
 }

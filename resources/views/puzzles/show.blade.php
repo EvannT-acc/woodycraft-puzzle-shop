@@ -1,72 +1,80 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-bold text-3xl text-gray-100 leading-tight">
-            {{ __('Détail du puzzle') }}
-        </h2>
+        <h2 class="text-xl font-semibold text-gray-100">Detail du puzzle</h2>
     </x-slot>
 
-    <div class="max-w-6xl mx-auto py-10 px-4">
-        <a href="{{ route('categories.show', $puzzle->categorie->id) }}" 
-           class="inline-block mb-6 text-accent hover:text-blue-400 text-sm transition">
-            ← Retour à la catégorie {{ $puzzle->categorie->nom }}
+    <div class="py-8 max-w-5xl mx-auto px-4">
+
+        @if(session('succes'))
+            <div class="mb-4 p-3 bg-green-800 text-green-200 rounded">{{ session('succes') }}</div>
+        @endif
+        @if(session('erreur'))
+            <div class="mb-4 p-3 bg-red-800 text-red-200 rounded">{{ session('erreur') }}</div>
+        @endif
+
+        <a href="{{ route('categories.show', $puzzle->categorie) }}"
+           class="text-blue-400 hover:underline text-sm">
+            &larr; Retour a la categorie {{ $puzzle->categorie->nom }}
         </a>
 
-        <div class="flex flex-col lg:flex-row gap-10 bg-gray-800 rounded-2xl p-8 shadow-soft border border-gray-700">
-            <div class="flex-1">
-                <div class="rounded-xl overflow-hidden shadow-lg relative group">
-                    <img src="{{ $puzzle->image ? asset('images/puzzles/' . $puzzle->image) : asset('images/no_image.jpg') }}" 
-                         alt="{{ $puzzle->nom }}" 
-                         class="w-full h-96 object-cover transform group-hover:scale-110 transition duration-500">
-                    <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                </div>
+        <div class="bg-gray-800 border border-gray-700 rounded shadow p-6 mt-4 flex flex-col md:flex-row gap-6">
+
+            {{-- Image du puzzle --}}
+            <div class="md:w-1/2">
+                @if($puzzle->image)
+                    <img src="{{ asset('images/puzzles/' . $puzzle->image) }}"
+                         alt="{{ $puzzle->nom }}"
+                         class="w-full rounded">
+                @else
+                    <div class="w-full h-64 bg-gray-700 rounded flex items-center justify-center">
+                        <span class="text-gray-400">Pas d'image</span>
+                    </div>
+                @endif
             </div>
 
-            <div class="flex-1 flex flex-col justify-between">
-                <div>
-                    <h1 class="text-4xl font-bold text-white mb-3">{{ $puzzle->nom }}</h1>
-                    <p class="text-gray-400 mb-6">{{ $puzzle->description }}</p>
+            {{-- Informations du puzzle --}}
+            <div class="md:w-1/2">
+                <h1 class="text-2xl font-bold text-gray-100 mb-2">{{ $puzzle->nom }}</h1>
+                <p class="text-sm text-gray-400 mb-1">Categorie : {{ $puzzle->categorie->nom }}</p>
+                <p class="text-gray-300 mb-4">{{ $puzzle->description }}</p>
 
-                    <p class="text-sm text-gray-500 mb-1">
-                        Catégorie : <span class="text-accent">{{ $puzzle->categorie->nom }}</span>
-                    </p>
+                <p class="text-3xl font-bold text-blue-400 mt-4 mb-6">
+                    {{ number_format($puzzle->prix, 2, ',', ' ') }} €
+                </p>
 
-                    <p class="text-sm text-gray-500 mb-1">
-                        Créé le : <span class="text-gray-300">{{ $puzzle->created_at->format('d/m/Y') }}</span>
-                    </p>
-
-                    @if($puzzle->created_at != $puzzle->updated_at)
-                        <p class="text-sm text-gray-500 mb-3">
-                            Dernière modification : <span class="text-gray-300">{{ $puzzle->updated_at->format('d/m/Y') }}</span>
-                        </p>
-                    @endif
-
-                    <div class="mt-3">
-                        @if($puzzle->stock > 0)
-                            <span class="inline-block px-3 py-1 text-xs font-bold text-green-400 bg-green-900/30 rounded">
-                                En stock ({{ $puzzle->stock }})
-                            </span>
-                        @else
-                            <span class="inline-block px-3 py-1 text-xs font-bold text-red-400 bg-red-900/30 rounded">
-                                Rupture
-                            </span>
-                        @endif
-                    </div>
-
-                    <p class="mt-5 text-3xl font-bold text-accent">
-                        {{ number_format($puzzle->prix, 2, ',', ' ') }} €
-                    </p>
-
-                    <form action="{{ route('paniers.add', $puzzle->id) }}" method="POST" class="mt-6">
+                @auth
+                    <form action="{{ route('panier.add', $puzzle) }}" method="POST">
                         @csrf
-                        <button type="submit" 
-                                class="px-6 py-3 text-gray-900 font-semibold rounded-xl shadow transition 
-                                       @if($puzzle->stock > 0) bg-accent hover:bg-blue-400 
-                                       @else bg-gray-600 text-gray-400 cursor-not-allowed @endif"
-                                @if($puzzle->stock == 0) disabled @endif>
+                        <button type="submit"
+                                class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 font-semibold">
                             Ajouter au panier
                         </button>
                     </form>
-                </div>
+
+                    {{-- Boutons admin --}}
+                    @if(auth()->user()->role === 'admin')
+                        <div class="mt-4 flex gap-2">
+                            <a href="{{ route('puzzles.edit', $puzzle) }}"
+                               class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                                Modifier
+                            </a>
+                            <form action="{{ route('puzzles.destroy', $puzzle) }}" method="POST"
+                                  onsubmit="return confirm('Supprimer ce puzzle ?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                                    Supprimer
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+                @else
+                    <a href="{{ route('login') }}"
+                       class="inline-block bg-gray-700 text-gray-200 px-4 py-2 rounded hover:bg-gray-600">
+                        Se connecter pour acheter
+                    </a>
+                @endauth
             </div>
         </div>
     </div>

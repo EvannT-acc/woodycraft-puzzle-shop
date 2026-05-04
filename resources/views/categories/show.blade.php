@@ -1,94 +1,64 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-bold text-3xl text-gray-100 leading-tight">
-            Puzzles - {{ $categorie->nom }}
-        </h2>
+        <h2 class="text-xl font-semibold text-gray-100">Categorie : {{ $categorie->nom }}</h2>
     </x-slot>
 
-    <div class="py-10 bg-gray-900 min-h-screen">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-8 max-w-7xl mx-auto px-4">
 
-            @if(session('success'))
-                <div class="mb-6 p-4 bg-green-700/30 text-green-300 rounded-lg shadow-soft">
-                    {{ session('success') }}
-                </div>
-            @endif
+        @if(session('succes'))
+            <div class="mb-4 p-3 bg-green-800 text-green-200 rounded">{{ session('succes') }}</div>
+        @endif
+        @if(session('erreur'))
+            <div class="mb-4 p-3 bg-red-800 text-red-200 rounded">{{ session('erreur') }}</div>
+        @endif
 
-            @if(session('error'))
-                <div class="mb-6 p-4 bg-red-700/30 text-red-300 rounded-lg shadow-soft">
-                    {{ session('error') }}
-                </div>
-            @endif
+        <a href="{{ route('dashboard') }}" class="text-blue-400 hover:underline text-sm">
+            &larr; Retour aux categories
+        </a>
 
-            <a href="{{ route('dashboard') }}" 
-               class="inline-block mb-6 text-accent hover:text-blue-400 text-sm transition">
-                ← Retour aux catégories
-            </a>
+        <h3 class="text-2xl font-bold mt-4 mb-6 text-gray-100">{{ $categorie->nom }}</h3>
 
-            <div class="bg-gray-800 rounded-2xl shadow-soft mb-8 p-6 border border-gray-700">
-                <h1 class="text-3xl font-extrabold text-accent mb-3">{{ $categorie->nom }}</h1>
-                @if($categorie->description)
-                    <p class="text-gray-400 text-lg">{{ $categorie->description }}</p>
-                @endif
-            </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            @forelse($categorie->puzzles as $puzzle)
+                <div class="bg-gray-800 border border-gray-700 rounded shadow p-4 flex flex-col">
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                @foreach($categorie->puzzles as $puzzle)
-                    <div class="bg-gray-800 rounded-2xl shadow-soft overflow-hidden hover:scale-[1.02] transition-all duration-300 group flex flex-col">
-                        <div class="relative">
-                            <img src="{{ asset('images/puzzles/' . $puzzle->image) }}" 
-                                 alt="{{ $puzzle->nom }}" 
-                                 class="w-full h-52 object-cover group-hover:scale-110 transition-transform duration-500">
-                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    @if($puzzle->image)
+                        <img src="{{ asset('images/puzzles/' . $puzzle->image) }}"
+                             alt="{{ $puzzle->nom }}"
+                             class="w-full h-40 object-cover rounded mb-3">
+                    @else
+                        <div class="w-full h-40 bg-gray-700 rounded mb-3 flex items-center justify-center">
+                            <span class="text-gray-400">Pas d'image</span>
                         </div>
+                    @endif
 
-                        <div class="p-5 flex flex-col justify-between flex-grow">
-                            <div>
-                                <h3 class="text-xl font-semibold text-white mb-1">{{ $puzzle->nom }}</h3>
-                                <p class="text-gray-400 text-sm mb-3">{{ Str::limit($puzzle->description, 90) }}</p>
+                    <h4 class="font-bold text-gray-100">{{ $puzzle->nom }}</h4>
+                    <p class="text-sm text-gray-400 mb-2">{{ Str::limit($puzzle->description, 80) }}</p>
 
-                                @if($puzzle->stock > 0)
-                                    <span class="inline-block mt-1 px-2 py-1 text-xs font-bold text-green-400 bg-green-900/30 rounded">
-                                        En stock ({{ $puzzle->stock }})
-                                    </span>
-                                @else
-                                    <span class="inline-block mt-1 px-2 py-1 text-xs font-bold text-red-400 bg-red-900/30 rounded">
-                                        Rupture
-                                    </span>
-                                @endif
+                    <p class="font-bold text-blue-400 text-lg mb-3">
+                        {{ number_format($puzzle->prix, 2, ',', ' ') }} €
+                    </p>
 
-                                <p class="mt-3 text-lg font-bold text-accent">
-                                    {{ number_format($puzzle->prix, 2, ',', ' ') }} €
-                                </p>
-                            </div>
+                    <div class="mt-auto flex gap-2">
+                        <a href="{{ route('puzzles.show', $puzzle) }}"
+                           class="flex-1 text-center bg-gray-700 text-gray-200 py-2 rounded hover:bg-gray-600 text-sm">
+                            Voir le detail
+                        </a>
 
-                            <div class="mt-5 flex justify-between">
-                                <a href="{{ route('puzzles.show', $puzzle->id) }}" 
-                                   class="px-4 py-2 bg-gray-700 text-gray-200 text-sm rounded-lg hover:bg-gray-600 transition">
-                                    Voir le détail
-                                </a>
-
-                                <form action="{{ route('paniers.add', $puzzle->id) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" 
-                                            class="px-4 py-2 text-sm font-semibold rounded-lg shadow transition 
-                                                   @if($puzzle->stock > 0) bg-accent text-gray-900 hover:bg-blue-400 
-                                                   @else bg-gray-600 text-gray-400 cursor-not-allowed @endif"
-                                            @if($puzzle->stock == 0) disabled @endif>
-                                        Ajouter
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
+                        @auth
+                            <form action="{{ route('panier.add', $puzzle) }}" method="POST">
+                                @csrf
+                                <button type="submit"
+                                        class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-sm">
+                                    Ajouter
+                                </button>
+                            </form>
+                        @endauth
                     </div>
-                @endforeach
-
-                @if($categorie->puzzles->isEmpty())
-                    <div class="col-span-full text-center py-12 bg-gray-800 rounded-2xl shadow-soft">
-                        <p class="text-gray-400 mb-4">Aucun puzzle disponible dans cette catégorie.</p>
-                    </div>
-                @endif
-            </div>
+                </div>
+            @empty
+                <p class="text-gray-400 col-span-3">Aucun puzzle dans cette categorie.</p>
+            @endforelse
         </div>
     </div>
 </x-app-layout>

@@ -2,21 +2,14 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'nom',
         'prenom',
@@ -26,47 +19,35 @@ class User extends Authenticatable
         'password',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'password'          => 'hashed',
     ];
 
-    /**
-     * Récupérer le nom complet de l'utilisateur.
-     */
-    public function getFullNameAttribute(): string
+    // Retourne "Prenom Nom" en un seul appel : $user->nom_complet
+    public function getNomCompletAttribute(): string
     {
-        return "{$this->prenom} {$this->nom}";
+        return $this->prenom . ' ' . $this->nom;
     }
 
-    /**
-     * Relations possibles (exemples à adapter plus tard).
-     */
-    public function adresses()
+    // Un utilisateur a une seule adresse de livraison
+    public function adresse()
     {
-        return $this->hasMany(Adresse::class);
+        return $this->hasOne(Adresse::class);
     }
 
+    // Un utilisateur a plusieurs paniers (historique des commandes)
     public function paniers()
     {
         return $this->hasMany(Panier::class);
     }
 
+    // Un utilisateur peut laisser plusieurs avis
     public function avis()
     {
         return $this->hasMany(Avis::class);

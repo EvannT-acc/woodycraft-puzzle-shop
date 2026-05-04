@@ -1,88 +1,64 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PuzzleController;
-use App\Http\Controllers\PanierController;
+use App\Http\Controllers\AvisController;
+use App\Http\Controllers\CategorieController;
 use App\Http\Controllers\CheckoutController;
-use App\Models\Categorie;
+use App\Http\Controllers\PanierController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PuzzleController;
+use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-| Routes principales du site WoodyCraftWeb
-|--------------------------------------------------------------------------
-*/
+// Page d'accueil : redirige vers le dashboard
+Route::get('/', fn() => redirect()->route('dashboard'))->name('home');
 
-// ---------------------------
-// Page d'accueil
-// ---------------------------
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+// Dashboard : affiche la liste des categories
+Route::get('/dashboard', [PuzzleController::class, 'dashboard'])->name('dashboard');
 
-// ---------------------------
-// Tableau de bord (accessible à tous)
-// ---------------------------
-Route::get('/dashboard', function () {
-    $categories = Categorie::with('puzzles')->get();
-    return view('dashboard', compact('categories'));
-})->name('dashboard');
+// Categories : affiche les puzzles d'une categorie
+Route::get('/categories/{categorie}', [CategorieController::class, 'show'])->name('categories.show');
 
-// ---------------------------
-// Catégories accessibles à tous
-// ---------------------------
-Route::get('/categories/{categorie}', function (Categorie $categorie) {
-    $categorie->load('puzzles');
-    return view('categories.show', compact('categorie'));
-})->name('categories.show');
-
-// ---------------------------
-// Puzzles (partiellement protégés)
-// ---------------------------
-
-// Liste publique (accessible à tous)
+// Puzzles : pages de lecture accessibles a tous
 Route::get('/puzzles', [PuzzleController::class, 'index'])->name('puzzles.index');
+Route::get('/puzzles/export-pdf', [PuzzleController::class, 'exportPdf'])->name('puzzles.export-pdf');
 
-// Détails publics (accessible à tous, même sans connexion)
-Route::get('/puzzles/{puzzle}', [PuzzleController::class, 'show'])->name('puzzles.show');
-
-// Routes protégées — création, modification et suppression réservées aux utilisateurs connectés
+// Puzzles : creation et modification (auth obligatoire, verif admin dans le controller)
 Route::middleware('auth')->group(function () {
-    Route::get('/puzzles/create', [PuzzleController::class, 'create'])->name('puzzles.create');
+    Route::get('/puzzles/creer', [PuzzleController::class, 'create'])->name('puzzles.create');
     Route::post('/puzzles', [PuzzleController::class, 'store'])->name('puzzles.store');
-    Route::get('/puzzles/{puzzle}/edit', [PuzzleController::class, 'edit'])->name('puzzles.edit');
+    Route::get('/puzzles/{puzzle}/modifier', [PuzzleController::class, 'edit'])->name('puzzles.edit');
     Route::put('/puzzles/{puzzle}', [PuzzleController::class, 'update'])->name('puzzles.update');
     Route::delete('/puzzles/{puzzle}', [PuzzleController::class, 'destroy'])->name('puzzles.destroy');
 });
 
-// ---------------------------
-// Panier
-// ---------------------------
-Route::get('/panier', [PanierController::class, 'index'])->name('paniers.index');
-Route::post('/panier/add/{puzzle}', [PanierController::class, 'add'])->name('paniers.add');
-Route::delete('/panier/remove/{ligne}', [PanierController::class, 'remove'])->name('paniers.remove');
-Route::patch('/panier/update/{ligne}', [PanierController::class, 'update'])->name('paniers.update');
+// IMPORTANT : cette route doit etre apres les routes fixes /puzzles/creer et /puzzles/export-pdf
+Route::get('/puzzles/{puzzle}', [PuzzleController::class, 'show'])->name('puzzles.show');
 
-// ---------------------------
-// Checkout (connexion obligatoire)
-// ---------------------------
+// Panier : connexion obligatoire
+Route::middleware('auth')->group(function () {
+    Route::get('/panier', [PanierController::class, 'index'])->name('panier.index');
+    Route::post('/panier/{puzzle}', [PanierController::class, 'add'])->name('panier.add');
+    Route::patch('/panier/ligne/{ligne}', [PanierController::class, 'update'])->name('panier.update');
+    Route::delete('/panier/ligne/{ligne}', [PanierController::class, 'remove'])->name('panier.remove');
+});
+
+// Checkout : connexion obligatoire
 Route::middleware('auth')->group(function () {
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
-    Route::post('/checkout/valider', [CheckoutController::class, 'valider'])->name('checkout.valider');
+    Route::post('/checkout', [CheckoutController::class, 'valider'])->name('checkout.valider');
 });
 
-// ---------------------------
-// Profil utilisateur (protégé)
-// ---------------------------
+// Profil : connexion obligatoire
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profil', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profil', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// ---------------------------
-// Authentification Breeze
-// ---------------------------
-require __DIR__.'/auth.php';
+// Avis : connexion obligatoire
+Route::middleware('auth')->group(function () {
+    Route::post('/puzzles/{puzzle}/avis', [AvisController::class, 'store'])->name('avis.store');
+    Route::delete('/avis/{avis}', [AvisController::class, 'destroy'])->name('avis.destroy');
+});
+
+// Routes d'authentification generees automatiquement par Breeze (login, register, etc.)
+require __DIR__ . '/auth.php';

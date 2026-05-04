@@ -5,26 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Avis extends Model
+class Adresse extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'puzzle_id',
-        'commentaire',
-        'note', // entre 1 et 5
+        'numero',
+        'rue',
+        'ville',
+        'code_postal',
+        'pays',
     ];
 
-    // Un avis appartient a un utilisateur
+    // Une adresse appartient a un utilisateur
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    // Un avis concerne un puzzle
-    public function puzzle()
-    {
-        return $this->belongsTo(Puzzle::class);
     }
 }

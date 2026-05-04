@@ -21,8 +21,8 @@
             <!-- Droite : panier + profil / connexion -->
             <div class="hidden sm:flex items-center space-x-6 ml-auto">
 
-                <!-- Icône du panier (toujours visible, à gauche des autres éléments) -->
-                <a href="{{ route('paniers.index') }}" 
+                <!-- Icone du panier (toujours visible) -->
+                <a href="{{ route('panier.index') }}"
                    class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-300 hover:text-accent transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-1 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -50,10 +50,10 @@
 
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
-                                <x-dropdown-link :href="route('logout')" 
-                                    onclick="event.preventDefault(); this.closest('form').submit();" 
+                                <x-dropdown-link :href="route('logout')"
+                                    onclick="event.preventDefault(); this.closest('form').submit();"
                                     class="hover:text-accent">
-                                    {{ __('Déconnexion') }}
+                                    {{ __('Deconnexion') }}
                                 </x-dropdown-link>
                             </form>
                         </x-slot>
@@ -73,14 +73,14 @@
 
             <!-- Menu mobile -->
             <div class="sm:hidden">
-                <button @click="open = ! open" 
+                <button @click="open = ! open"
                         class="p-2 rounded-md text-gray-400 hover:text-accent hover:bg-gray-800 transition">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" 
-                              class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        <path :class="{'hidden': open, 'inline-flex': ! open }"
+                              class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" 
-                              class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        <path :class="{'hidden': ! open, 'inline-flex': open }"
+                              class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -95,8 +95,8 @@
                 {{ __('Tableau de bord') }}
             </x-responsive-nav-link>
 
-            <!-- Panier toujours visible sur mobile aussi -->
-            <x-responsive-nav-link :href="route('paniers.index')" :active="request()->routeIs('paniers.index')" class="text-gray-300 hover:text-accent">
+            <!-- Panier visible sur mobile -->
+            <x-responsive-nav-link :href="route('panier.index')" :active="request()->routeIs('panier.index')" class="text-gray-300 hover:text-accent">
                 Mon Panier
             </x-responsive-nav-link>
         </div>
@@ -115,10 +115,10 @@
 
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <x-responsive-nav-link :href="route('logout')" 
-                            onclick="event.preventDefault(); this.closest('form').submit();" 
+                        <x-responsive-nav-link :href="route('logout')"
+                            onclick="event.preventDefault(); this.closest('form').submit();"
                             class="text-gray-300 hover:text-accent">
-                            {{ __('Déconnexion') }}
+                            {{ __('Deconnexion') }}
                         </x-responsive-nav-link>
                     </form>
                 </div>
